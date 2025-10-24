@@ -7,8 +7,6 @@ import { calculateQuote } from './utils/quoteCalculator';
 import { CalculatorForm } from './components/CalculatorForm';
 import { ResultsDisplay } from './components/ResultsDisplay';
 import { generateOrderNumber } from './utils/generateOrderNumber';
-
-// Importa el logo
 import logoSrc from '/cotizadorbanner.png';
 
 const App: React.FC = () => {
@@ -48,12 +46,14 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* === CAMBIO AQUÍ: Banner con tamaño ajustado y centrado === */}
-        <img 
-          src={logoSrc} 
-          alt="Cotizador Banner" 
-          className="w-full lg:w-1/2 mx-auto h-auto rounded-lg shadow-md mb-8" 
-        />
+        {/* === CAMBIO AQUÍ: Banner con tamaño máximo controlado === */}
+        <div className="w-full max-w-4xl mx-auto mb-8 no-print">
+          <img 
+            src={logoSrc} 
+            alt="Cotizador Banner" 
+            className="w-full h-auto rounded-lg shadow-md" 
+          />
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-8">
           <div className="lg:col-span-3 no-print">
