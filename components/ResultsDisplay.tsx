@@ -1,10 +1,11 @@
+// src/components/ResultsDisplay.tsx
+
 import React, { useRef } from 'react';
 import type { QuoteDetails, FormState } from '../types';
 import { Card } from './Card';
 import { ImpositionVisualizer } from './ImpositionVisualizer';
 import { exportToPDF } from '../utils/pdfExporter';
 import { PAPER_SIZES, FINISHES_CONFIG } from '../constants';
-import html2canvas from 'html2canvas';
 
 interface ResultsDisplayProps {
   quote: QuoteDetails;
@@ -34,65 +35,41 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ quote, formState
         exportToPDF(quote, formState, visualizerRef.current);
     };
 
-    const handleShareToWhatsApp = async () => {
-        if (!resultsCardRef.current) return;
-        try {
-            const canvas = await html2canvas(resultsCardRef.current, { 
-                scale: 2, 
-                backgroundColor: '#ffffff',
-                onclone: (document) => {
-                    const clonedElement = document.getElementById('print-area');
-                    if (clonedElement) {
-                         const buttons = clonedElement.querySelector('.no-print');
-                         if(buttons) (buttons as HTMLElement).style.display = 'none';
-                    }
-                }
-            });
-    
-            await new Promise<void>((resolve, reject) => {
-                canvas.toBlob(async (blob) => {
-                    if (blob) {
-                        try {
-                            await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
-                            resolve();
-                        } catch (clipboardError) {
-                            reject(clipboardError);
-                        }
-                    } else {
-                        reject(new Error('Failed to create blob from canvas.'));
-                    }
-                }, 'image/png');
-            });
+    // --- LÓGICA DE WHATSAPP MEJORADA ---
+    const generateWhatsAppMessage = () => {
+        const activeFinishes = Object.keys(formState.finishes)
+            .filter((key) => formState.finishes[key].enabled)
+            .map((key) => FINISHES_CONFIG[key]?.name)
+            .filter(Boolean)
+            .join(', ');
 
-            const { productionOrderNumber } = formState;
-            const { total } = quote;
-            
-            // FIX: Refactored to use Object.keys() which has better type inference than Object.entries(), resolving the error on `finish.enabled`.
-            const activeFinishes = Object.keys(formState.finishes)
-                .filter((key) => formState.finishes[key].enabled)
-                .map((key) => FINISHES_CONFIG[key]?.name)
-                .filter(Boolean)
-                .join(', ');
+        const messageParts = [
+            `📄 *Cotización - Orden N°: ${formState.productionOrderNumber}*`,
+            ``,
+            `*Descripción:* ${formState.jobDescription || 'Trabajo de impresión'}`,
+            `*Cantidad:* ${formState.quantity.toLocaleString('es-CO')} unidades`,
+            `*Tamaño:* ${formState.jobWidth}cm x ${formState.jobHeight}cm`,
+            ``,
+            `*--- Desglose ---*`,
+            `Costo Papel: ${formatCurrency(quote.paperCost)}`,
+            `Costo Placas: ${formatCurrency(quote.plateCost)}`,
+            `Costo Impresión: ${formatCurrency(quote.printCost)}`,
+            `Acabados: ${formatCurrency(quote.finishingCost)}`,
+            `*Acabados Activos:* ${activeFinishes || 'Ninguno'}`,
+            ``,
+            `*Subtotal:* ${formatCurrency(quote.subtotal)}`,
+            formState.applyTax ? `*IVA (19%):* ${formatCurrency(quote.tax)}` : '',
+            `--------------------`,
+            `*TOTAL: ${formatCurrency(quote.total)}*`,
+        ];
 
-            const message = `¡Hola! Te comparto la cotización para la orden *${productionOrderNumber}*.\n\n` +
-                            `*Acabados:* ${activeFinishes || 'Ninguno'}\n` +
-                            `*Total:* ${formatCurrency(total)}\n\n` +
-                            `(Adjunto la imagen con el desglose completo)`;
+        return messageParts.filter(part => part !== '').join('\n');
+    };
 
-            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-            
-            alert('¡Cotización completa copiada al portapapeles! Pégala en WhatsApp (Ctrl+V o Cmd+V).');
-
-            window.open(whatsappUrl, '_blank');
-
-        } catch (error) {
-            console.error('Error al compartir en WhatsApp:', error);
-            let errorMessage = 'Hubo un error al intentar copiar la imagen.';
-             if (error instanceof Error && (error.name === 'NotAllowedError' || error.message.includes('focus'))) {
-                 errorMessage += '\nPor favor, asegúrese de que la ventana del navegador esté activa y con permisos para acceder al portapapeles.';
-            }
-            alert(errorMessage);
-        }
+    const handleShareToWhatsApp = () => {
+        const message = generateWhatsAppMessage();
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     };
     
     const handlePrint = () => {
