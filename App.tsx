@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import React, { useState, useMemo } from 'react';
 import type { FormState, FinishOption } from './types';
 import { INITIAL_FORM_STATE } from './constants';
@@ -5,6 +7,9 @@ import { calculateQuote } from './utils/quoteCalculator';
 import { CalculatorForm } from './components/CalculatorForm';
 import { ResultsDisplay } from './components/ResultsDisplay';
 import { generateOrderNumber } from './utils/generateOrderNumber';
+
+// Importa el logo aquí
+import logoSrc from '/cotizadorbanner.png';
 
 const App: React.FC = () => {
   const [formState, setFormState] = useState<FormState>({
@@ -14,11 +19,9 @@ const App: React.FC = () => {
   
   const quote = useMemo(() => calculateQuote(formState), [formState]);
 
+  // ... (tus funciones handleFormChange, handleFinishChange, regenerateOrderNumber)
   const handleFormChange = (field: keyof FormState, value: any) => {
-    setFormState(prevState => ({
-      ...prevState,
-      [field]: value
-    }));
+    setFormState(prevState => ({ ...prevState, [field]: value }));
   };
 
   const handleFinishChange = (finishKey: string, value: Partial<FinishOption>) => {
@@ -26,22 +29,19 @@ const App: React.FC = () => {
       ...prevState,
       finishes: {
         ...prevState.finishes,
-        [finishKey]: {
-          ...prevState.finishes[finishKey],
-          ...value
-        },
-      }
+        [finishKey]: { ...prevState.finishes[finishKey], ...value },
+      },
     }));
   };
-
 
   const regenerateOrderNumber = () => {
     handleFormChange('productionOrderNumber', generateOrderNumber());
   };
 
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
-      <header className="bg-white shadow-md">
+      <header className="bg-white shadow-md no-print">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Cotizador de Impresión Offset
@@ -50,8 +50,11 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Banner principal añadido aquí */}
+        <img src={logoSrc} alt="Cotizador Banner" className="w-full h-auto rounded-lg shadow-md mb-8" />
+        
         <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-8">
-          <div className="lg-col-span-3">
+          <div className="lg:col-span-3 no-print">
             <CalculatorForm
               formState={formState}
               onFormChange={handleFormChange}
@@ -67,7 +70,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
-       <footer className="text-center py-4 text-slate-500 text-sm">
+       <footer className="text-center py-4 text-slate-500 text-sm no-print">
         <p>Creado para imprentas eficientes.</p>
       </footer>
     </div>
