@@ -46,8 +46,8 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* === CAMBIO AQUÍ: Banner con tamaño máximo controlado === */}
-        <div className="w-full max-w-4xl mx-auto mb-8 no-print">
+        {/* CORRECCIÓN: Banner con tamaño máximo controlado y clase no-print */}
+        <div className="w-full max-w-3xl mx-auto mb-8 no-print">
           <img 
             src={logoSrc} 
             alt="Cotizador Banner" 
