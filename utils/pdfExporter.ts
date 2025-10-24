@@ -1,75 +1,104 @@
 // src/utils/pdfExporter.ts
 
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { QuoteDetails, FormState } from '../types';
 import { generateQuoteTextData } from './textGenerator';
 
-export const exportToPDF = (
+export const exportToPDF = async (
     quote: QuoteDetails,
     formState: FormState,
-    visualizerElement: HTMLDivElement | null,
-    logoImage: HTMLImageElement | null
+    visualizerElement: HTMLElement | null
 ) => {
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'pt', 'letter');
     const data = generateQuoteTextData(quote, formState);
-    let yPos = 20;
+    const margin = 40;
+    let y = margin;
+
+    // Cargar el logo como un elemento de imagen
+    const logoImg = new Image();
+    logoImg.src = '/cotizadorbanner.png'; // Vite manejará la ruta desde 'public'
+    
+    // Esperar a que el logo cargue
+    await new Promise(resolve => {
+        logoImg.onload = resolve;
+    });
 
     // 1. Añadir el Logo
-    if (logoImage) {
-        // Asegúrate de que las dimensiones del logo son adecuadas
-        const logoWidth = 50;
-        const logoHeight = (logoImage.height * logoWidth) / logoImage.width;
-        doc.addImage(logoImage, 'PNG', 15, 15, logoWidth, logoHeight);
-        yPos = 30 + logoHeight; // Ajusta la posición inicial del texto
-    }
+    const logoWidth = 150;
+    const logoHeight = (logoImg.height * logoWidth) / logoImg.width;
+    doc.addImage(logoImg, 'PNG', margin, y, logoWidth, logoHeight);
+    y += logoHeight + 20;
 
     // 2. Título y Nº de Orden
     doc.setFontSize(18);
-    doc.text(data.title, 15, yPos);
-    yPos += 10;
-    doc.setFontSize(12);
-    doc.text(data.orderNumber, 15, yPos);
-    yPos += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.title, margin, y);
+    y += 20;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(data.orderNumber, margin, y);
+    y += 25;
 
     // 3. Detalles del Trabajo
     doc.setFontSize(14);
-    doc.text(data.jobDetailsTitle, 15, yPos);
-    yPos += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.jobDetailsTitle, margin, y);
+    y += 15;
     doc.setFontSize(10);
-    doc.text([data.dimensions, data.quantity, data.paper, data.finishes], 15, yPos);
-    yPos += 25;
+    doc.setFont('helvetica', 'normal');
+    doc.text([data.dimensions, data.quantity, data.paper, data.sheet, data.printing, data.finishes], margin, y);
+    y += 6 * 15 + 10;
 
     // 4. Desglose de Costos
     doc.setFontSize(14);
-    doc.text(data.costBreakdownTitle, 15, yPos);
-    yPos += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.costBreakdownTitle, margin, y);
+    y += 15;
     doc.setFontSize(10);
-    doc.text([
-        data.itemsPerSheet, data.sheetsWithWaste, data.paperCost, 
-        data.plateCost, data.printCost, data.finishingCost
-    ], 15, yPos);
-    yPos += 40;
-
-    // 5. Resumen Total
-    doc.setFontSize(12);
-    doc.text(data.subtotal, 15, yPos);
-    yPos += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.text([data.itemsPerSheet, data.sheetsWithWaste, data.paperCost, data.plateCost, data.printCost, data.finishingCost], margin, y);
+    y += 6 * 15 + 10;
+    
+    // 5. Línea divisoria
+    doc.setDrawColor(200);
+    doc.line(margin, y, 572, y);
+    y += 20;
+    
+    // 6. Resumen Total
+    doc.setFontSize(10);
+    doc.text(data.subtotal, margin, y);
+    y += 15;
     if (formState.applyTax) {
-        doc.text(data.tax, 15, yPos);
-        yPos += 7;
+        doc.text(data.tax, margin, y);
+        y += 15;
     }
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(data.total, 15, yPos);
-    yPos += 15;
-    
-    // 6. Visualización (Opcional, si se proporciona)
-    if (visualizerElement) {
-        doc.addPage();
-        doc.text("Visualización de Imposición", 15, 20);
-        // Aquí podrías usar html2canvas para añadir la visualización como imagen
-        // Pero por simplicidad, lo dejaremos así por ahora.
-    }
+    doc.text(data.total, margin, y);
+    y += 30;
 
+    // 7. Visualización de Imposición
+    if (visualizerElement) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Visualización de Imposición', margin, y);
+        y += 15;
+
+        const canvas = await html2canvas(visualizerElement, { scale: 3, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        if (y + pdfHeight > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            y = margin;
+        }
+
+        doc.addImage(imgData, 'PNG', margin, y, pdfWidth, pdfHeight);
+    }
+    
     doc.save(`cotizacion_${formState.productionOrderNumber}.pdf`);
 };
