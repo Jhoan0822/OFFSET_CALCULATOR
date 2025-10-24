@@ -2,14 +2,12 @@
 
 import React, { forwardRef } from 'react';
 
-// Definimos los props, incluyendo `children` y `className`
 interface CardProps {
   children: React.ReactNode;
   className?: string;
-  id?: string; // Permitimos que el componente reciba un 'id'
+  id?: string;
 }
 
-// Usamos forwardRef para pasar la ref al div
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ children, className = '', id }, ref) => {
     return (
@@ -24,5 +22,4 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   }
 );
 
-// Añadimos un displayName para facilitar la depuración en las herramientas de React
 Card.displayName = 'Card';
