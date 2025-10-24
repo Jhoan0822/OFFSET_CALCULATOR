@@ -130,21 +130,26 @@ Una vez instaladas las dependencias, puedes usar los siguientes scripts de `pack
     Este comando inicia un servidor local simple para servir los archivos del directorio `dist/`, permitiéndote verificar la versión de producción antes de desplegarla.
 
 ## 📁 Estructura del Proyecto
-/
-├── public/ # Archivos estáticos (íconos, etc.)
-├── src/
-│ ├── components/ # Componentes de React reutilizables (Formulario, Resultados)
-│ ├── utils/ # Funciones de utilidad (Cálculos, generador de IDs)
-│ ├── App.tsx # Componente principal de la aplicación
-│ ├── constants.ts # Constantes y estado inicial
-│ ├── index.css # Estilos globales
-│ ├── index.tsx # Punto de entrada de la aplicación
-│ └── types.ts # Definiciones de tipos de TypeScript
-├── .gitignore # Archivos y carpetas ignorados por Git
-├── index.html # Plantilla HTML principal
-├── package.json # Dependencias y scripts del proyecto
-├── README.md # ¡Este archivo!
-└── tsconfig.json # Configuración de TypeScript
+    /
+    ├── public/ # Archivos estáticos (íconos, etc.)
+    ├── src/
+    │ ├── components/ # Componentes de React (UI)
+    │ │ ├── CalculatorForm.tsx
+    │ │ └── ResultsDisplay.tsx
+    │ ├── utils/ # Lógica y funciones de utilidad
+    │ │ ├── quoteCalculator.ts
+    │ │ └── generateOrderNumber.ts
+    │ ├── App.tsx # Componente principal de la aplicación
+    │ ├── constants.ts # Constantes y estado inicial del formulario
+    │ ├── index.css # Estilos globales (referenciado en index.html)
+    │ ├── index.tsx # Punto de entrada de la aplicación React
+    │ └── types.ts # Definiciones de tipos de TypeScript
+    ├── .gitignore # Archivos y carpetas ignorados por Git
+    ├── index.html # Plantilla HTML principal
+    ├── metadata.json # Metadatos para AI Studio
+    ├── package.json # Dependencias y scripts del proyecto
+    ├── README.md # Este archivo
+    └── tsconfig.json # Configuración de TypeScript
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles. (Nota: Se recomienda añadir un archivo `LICENSE` al repositorio).
