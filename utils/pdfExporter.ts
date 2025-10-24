@@ -8,27 +8,26 @@ import { generateQuoteTextData } from './textGenerator';
 export const exportToPDF = async (
     quote: QuoteDetails,
     formState: FormState,
-    visualizerElement: HTMLElement | null
+    visualizerElement: HTMLElement | null,
+    logoElement: HTMLElement | null
 ) => {
     const doc = new jsPDF('p', 'pt', 'letter');
     const data = generateQuoteTextData(quote, formState);
     const margin = 40;
     let y = margin;
 
-    // Cargar el logo como un elemento de imagen
-    const logoImg = new Image();
-    logoImg.src = '/cotizadorbanner.png'; // Vite manejará la ruta desde 'public'
-    
-    // Esperar a que el logo cargue
-    await new Promise(resolve => {
-        logoImg.onload = resolve;
-    });
+    // === PÁGINA 1: TEXTO Y BANNER ===
 
     // 1. Añadir el Logo
-    const logoWidth = 150;
-    const logoHeight = (logoImg.height * logoWidth) / logoImg.width;
-    doc.addImage(logoImg, 'PNG', margin, y, logoWidth, logoHeight);
-    y += logoHeight + 20;
+    if (logoElement) {
+        const canvas = await html2canvas(logoElement, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        doc.addImage(imgData, 'PNG', margin, y, pdfWidth, pdfHeight);
+        y += pdfHeight + 20;
+    }
 
     // 2. Título y Nº de Orden
     doc.setFontSize(18);
@@ -47,8 +46,9 @@ export const exportToPDF = async (
     y += 15;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text([data.dimensions, data.quantity, data.paper, data.sheet, data.printing, data.finishes], margin, y);
-    y += 6 * 15 + 10;
+    const jobDetailsLines = [data.dimensions, data.quantity, data.paper, data.sheet, data.printing, data.finishes];
+    doc.text(jobDetailsLines, margin, y);
+    y += jobDetailsLines.length * 15 + 10;
 
     // 4. Desglose de Costos
     doc.setFontSize(14);
@@ -57,8 +57,9 @@ export const exportToPDF = async (
     y += 15;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text([data.itemsPerSheet, data.sheetsWithWaste, data.paperCost, data.plateCost, data.printCost, data.finishingCost], margin, y);
-    y += 6 * 15 + 10;
+    const costLines = [data.itemsPerSheet, data.sheetsWithWaste, data.paperCost, data.plateCost, data.printCost, data.finishingCost];
+    doc.text(costLines, margin, y);
+    y += costLines.length * 15 + 10;
     
     // 5. Línea divisoria
     doc.setDrawColor(200);
@@ -76,14 +77,17 @@ export const exportToPDF = async (
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(data.total, margin, y);
-    y += 30;
 
-    // 7. Visualización de Imposición
+    // === PÁGINA 2: VISUALIZACIÓN ===
+
     if (visualizerElement) {
+        doc.addPage();
+        y = margin;
+
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text('Visualización de Imposición', margin, y);
-        y += 15;
+        y += 20;
 
         const canvas = await html2canvas(visualizerElement, { scale: 3, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
@@ -91,11 +95,6 @@ export const exportToPDF = async (
         const imgProps = doc.getImageProperties(imgData);
         const pdfWidth = doc.internal.pageSize.getWidth() - 2 * margin;
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-        if (y + pdfHeight > doc.internal.pageSize.getHeight() - margin) {
-            doc.addPage();
-            y = margin;
-        }
 
         doc.addImage(imgData, 'PNG', margin, y, pdfWidth, pdfHeight);
     }
