@@ -1,0 +1,5 @@
+{
+  "name": "Cotizador de Impresión Offset",
+  "description": "Una herramienta de planificación y cotización para trabajos de impresión offset. Calcule el uso de materiales, los costos y visualice la disposición de los trabajos en un pliego de papel estándar.",
+  "requestFramePermissions": []
+}
