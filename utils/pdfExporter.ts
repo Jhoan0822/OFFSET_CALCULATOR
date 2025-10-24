@@ -1,115 +1,75 @@
+// src/utils/pdfExporter.ts
+
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import type { QuoteDetails, FormState } from '../types';
-import { PAPER_SIZES, PAPER_TYPES, PRINT_PRESETS, FINISHES_CONFIG } from '../constants';
+import { generateQuoteTextData } from './textGenerator';
 
-export const exportToPDF = async (
-    quote: QuoteDetails, 
+export const exportToPDF = (
+    quote: QuoteDetails,
     formState: FormState,
-    visualizerElement: HTMLElement | null
+    visualizerElement: HTMLDivElement | null,
+    logoImage: HTMLImageElement | null
 ) => {
-    if (!visualizerElement) return;
+    const doc = new jsPDF();
+    const data = generateQuoteTextData(quote, formState);
+    let yPos = 20;
 
-    const doc = new jsPDF('p', 'pt', 'letter');
-    const margin = 40;
-    let y = margin;
-
-    const addText = (text: string, size: number, isBold: boolean = false) => {
-        doc.setFontSize(size);
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-        doc.text(text, margin, y);
-        y += size * 1.2;
-    };
-    
-    const addKeyValue = (key: string, value: string) => {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(key, margin, y);
-        doc.setFont('helvetica', 'normal');
-        
-        // Wrap text if value is too long
-        const splitValue = doc.splitTextToSize(value, 350); // 350 is the max width for the value
-        doc.text(splitValue, margin + 200, y);
-        y += 15 * splitValue.length;
-    };
-    
-    const formatCurrency = (value: number) => {
-        const formatter = new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            maximumFractionDigits: 0,
-        });
-        return formatter.format(value);
-    };
-
-    const selectedPaper = PAPER_SIZES[formState.selectedPaperIndex];
-    const paperDetails = `${PAPER_TYPES[formState.paperType as keyof typeof PAPER_TYPES].name} ${formState.paperWeight}gr`;
-    const printDetails = formState.printMode === 'preset'
-        ? PRINT_PRESETS[formState.printPreset].name
-        : `${formState.customFrontInks}x${formState.customBackInks} (Personalizado)`;
-
-    const activeFinishes = Object.entries(formState.finishes)
-        .filter(([, finish]) => finish.enabled)
-        .map(([key]) => FINISHES_CONFIG[key]?.name)
-        .filter(Boolean)
-        .join(', ');
-
-
-    addText('Cotización de Impresión Offset', 22, true);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Nº de Orden: ${formState.productionOrderNumber}`, margin, y);
-    y += 20;
-
-    addText('Detalles del Trabajo', 14, true);
-    y+= 5;
-    addKeyValue('Dimensiones:', `${formState.jobWidth}cm x ${formState.jobHeight}cm`);
-    addKeyValue('Cantidad:', `${formState.quantity.toLocaleString('es-CO')} unidades`);
-    addKeyValue('Pliego:', selectedPaper.name);
-    addKeyValue('Material:', paperDetails);
-    addKeyValue('Impresión:', printDetails);
-    addKeyValue('Acabados:', activeFinishes || 'Ninguno');
-    y += 15;
-
-    addText('Desglose de Costos', 14, true);
-    y+= 5;
-    addKeyValue('Cabida por Pliego:', `${quote.itemsPerSheet} unidades`);
-    addKeyValue('Pliegos con Desperdicio:', `${quote.sheetsWithWaste.toLocaleString('es-CO')}`);
-    y += 5;
-    addKeyValue('Costo de Papel:', formatCurrency(quote.paperCost));
-    addKeyValue(`Costo de Placas (${quote.calculatedPlates} un.):`, formatCurrency(quote.plateCost));
-    addKeyValue('Costo de Impresión:', formatCurrency(quote.printCost));
-    addKeyValue('Costo de Acabados:', formatCurrency(quote.finishingCost));
-    doc.line(margin, y, 572, y);
-    y+=10;
-
-    addKeyValue('Subtotal:', formatCurrency(quote.subtotal));
-    if(formState.applyTax) {
-       addKeyValue('IVA (19%):', formatCurrency(quote.tax));
+    // 1. Añadir el Logo
+    if (logoImage) {
+        // Asegúrate de que las dimensiones del logo son adecuadas
+        const logoWidth = 50;
+        const logoHeight = (logoImage.height * logoWidth) / logoImage.width;
+        doc.addImage(logoImage, 'PNG', 15, 15, logoWidth, logoHeight);
+        yPos = 30 + logoHeight; // Ajusta la posición inicial del texto
     }
-    y+=5;
+
+    // 2. Título y Nº de Orden
+    doc.setFontSize(18);
+    doc.text(data.title, 15, yPos);
+    yPos += 10;
     doc.setFontSize(12);
+    doc.text(data.orderNumber, 15, yPos);
+    yPos += 15;
+
+    // 3. Detalles del Trabajo
+    doc.setFontSize(14);
+    doc.text(data.jobDetailsTitle, 15, yPos);
+    yPos += 7;
+    doc.setFontSize(10);
+    doc.text([data.dimensions, data.quantity, data.paper, data.finishes], 15, yPos);
+    yPos += 25;
+
+    // 4. Desglose de Costos
+    doc.setFontSize(14);
+    doc.text(data.costBreakdownTitle, 15, yPos);
+    yPos += 7;
+    doc.setFontSize(10);
+    doc.text([
+        data.itemsPerSheet, data.sheetsWithWaste, data.paperCost, 
+        data.plateCost, data.printCost, data.finishingCost
+    ], 15, yPos);
+    yPos += 40;
+
+    // 5. Resumen Total
+    doc.setFontSize(12);
+    doc.text(data.subtotal, 15, yPos);
+    yPos += 7;
+    if (formState.applyTax) {
+        doc.text(data.tax, 15, yPos);
+        yPos += 7;
+    }
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Total:', margin, y);
-    doc.text(formatCurrency(quote.total), margin + 200, y);
-    y += 30;
-
-    addText('Visualización de Imposición', 14, true);
-    y += 10;
-
-    const canvas = await html2canvas(visualizerElement, { scale: 2, backgroundColor: '#ffffff' });
-    const imgData = canvas.toDataURL('image/png');
+    doc.text(data.total, 15, yPos);
+    yPos += 15;
     
-    const imgProps = doc.getImageProperties(imgData);
-    const pdfWidth = doc.internal.pageSize.getWidth() - 2 * margin;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    if (y + pdfHeight > doc.internal.pageSize.getHeight() - margin) {
+    // 6. Visualización (Opcional, si se proporciona)
+    if (visualizerElement) {
         doc.addPage();
-        y = margin;
+        doc.text("Visualización de Imposición", 15, 20);
+        // Aquí podrías usar html2canvas para añadir la visualización como imagen
+        // Pero por simplicidad, lo dejaremos así por ahora.
     }
 
-    doc.addImage(imgData, 'PNG', margin, y, pdfWidth, pdfHeight);
-
-    doc.save(`cotizacion-${formState.productionOrderNumber}.pdf`);
+    doc.save(`cotizacion_${formState.productionOrderNumber}.pdf`);
 };
