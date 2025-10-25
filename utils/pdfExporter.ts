@@ -4,23 +4,13 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { QuoteDetails, FormState } from '../types';
 import { generateQuoteTextData } from './textGenerator';
-
-// Función auxiliar para añadir una imagen de canvas a un PDF
-const addCanvasToPdf = async (doc: jsPDF, canvas: HTMLCanvasElement, y: number, margin: number) => {
-    const imgData = canvas.toDataURL('image/png');
-    const imgProps = doc.getImageProperties(imgData);
-    const pdfWidth = doc.internal.pageSize.getWidth() - 2 * margin;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    doc.addImage(imgData, 'PNG', margin, y, pdfWidth, pdfHeight);
-    return y + pdfHeight;
-};
-
+import logoSrc from '/cotizadorbanner.png'; // Importa la ruta del logo directamente
 
 export const exportToPDF = async (
     quote: QuoteDetails,
     formState: FormState,
     visualizerElement: HTMLElement | null,
-    logoElement: HTMLElement | null
+    // Ya no necesitamos el elemento del logo, la ruta es suficiente
 ) => {
     try {
         const doc = new jsPDF('p', 'pt', 'letter');
@@ -30,12 +20,19 @@ export const exportToPDF = async (
 
         // --- PÁGINA 1: BANNER Y TEXTO ---
 
-        if (logoElement) {
-            const logoCanvas = await html2canvas(logoElement, { scale: 2 });
-            y = await addCanvasToPdf(doc, logoCanvas, y, margin);
-            y += 20; // Espacio después del logo
-        }
+        // === CAMBIO CLAVE: Cargar el logo directamente sin html2canvas ===
+        const logoImg = new Image();
+        logoImg.src = logoSrc;
+        
+        // Esperar a que la imagen se cargue en memoria
+        await new Promise(resolve => { logoImg.onload = resolve; });
 
+        const logoWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+        const logoHeight = (logoImg.height * logoWidth) / logoImg.width;
+        doc.addImage(logoImg, 'PNG', margin, y, logoWidth, logoHeight);
+        y += logoHeight + 20;
+
+        // --- El resto del código permanece igual ---
         doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.text(data.title, margin, y); y += 20;
         doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text(data.orderNumber, margin, y); y += 25;
         
@@ -55,17 +52,23 @@ export const exportToPDF = async (
         if (formState.applyTax) { doc.text(data.tax, margin, y); y += 15; }
         doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text(data.total, margin, y);
 
-        // --- PÁGINA 2: VISUALIZACIÓN ---
+        // --- PÁGINA 2: VISUALIZACIÓN (Sigue usando html2canvas, lo cual está bien) ---
 
         if (visualizerElement) {
             doc.addPage();
-            let y2 = margin;
+            y = margin;
 
-            doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('Visualización de Imposición', margin, y2);
-            y2 += 20;
+            doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('Visualización de Imposición', margin, y);
+            y += 20;
 
             const vizCanvas = await html2canvas(visualizerElement, { scale: 3, backgroundColor: '#ffffff' });
-            await addCanvasToPdf(doc, vizCanvas, y2, margin);
+            const vizImgData = vizCanvas.toDataURL('image/png');
+            
+            const vizImgProps = doc.getImageProperties(vizImgData);
+            const vizPdfWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+            const vizPdfHeight = (vizImgProps.height * vizPdfWidth) / vizImgProps.width;
+
+            doc.addImage(vizImgData, 'PNG', margin, y, vizPdfWidth, vizPdfHeight);
         }
         
         doc.save(`cotizacion_${formState.productionOrderNumber}.pdf`);
