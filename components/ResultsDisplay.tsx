@@ -31,7 +31,8 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ quote, formState
     const textData = generateQuoteTextData(quote, formState);
 
     const handleExport = async () => {
-        await exportToPDF(quote, formState, visualizerRef.current, logoRef.current);
+    // ESTA ES LA LÍNEA CORRECTA
+    await exportToPDF(quote, formState, visualizerRef.current);
     };
 
     const handleShareToWhatsApp = () => {
