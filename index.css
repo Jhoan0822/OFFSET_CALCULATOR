@@ -1,12 +1,17 @@
+/* index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .print-only {
     display: none;
 }
 
 @media print {
     .print-only {
-        display: block;
+        display: block !important;
+    }
+    .print-page-break {
+        page-break-before: always;
     }
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
