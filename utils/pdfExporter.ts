@@ -16,9 +16,8 @@ export const exportToPDF = async (
     const margin = 40;
     let y = margin;
 
-    // === PÁGINA 1: TEXTO Y BANNER ===
+    // --- PÁGINA 1: BANNER Y TEXTO ---
 
-    // 1. Añadir el Logo
     if (logoElement) {
         const canvas = await html2canvas(logoElement, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
@@ -29,7 +28,6 @@ export const exportToPDF = async (
         y += pdfHeight + 20;
     }
 
-    // 2. Título y Nº de Orden
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text(data.title, margin, y);
@@ -39,7 +37,6 @@ export const exportToPDF = async (
     doc.text(data.orderNumber, margin, y);
     y += 25;
 
-    // 3. Detalles del Trabajo
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(data.jobDetailsTitle, margin, y);
@@ -50,7 +47,6 @@ export const exportToPDF = async (
     doc.text(jobDetailsLines, margin, y);
     y += jobDetailsLines.length * 15 + 10;
 
-    // 4. Desglose de Costos
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(data.costBreakdownTitle, margin, y);
@@ -61,12 +57,10 @@ export const exportToPDF = async (
     doc.text(costLines, margin, y);
     y += costLines.length * 15 + 10;
     
-    // 5. Línea divisoria
     doc.setDrawColor(200);
     doc.line(margin, y, 572, y);
     y += 20;
     
-    // 6. Resumen Total
     doc.setFontSize(10);
     doc.text(data.subtotal, margin, y);
     y += 15;
@@ -78,7 +72,7 @@ export const exportToPDF = async (
     doc.setFont('helvetica', 'bold');
     doc.text(data.total, margin, y);
 
-    // === PÁGINA 2: VISUALIZACIÓN ===
+    // --- PÁGINA 2: VISUALIZACIÓN ---
 
     if (visualizerElement) {
         doc.addPage();
